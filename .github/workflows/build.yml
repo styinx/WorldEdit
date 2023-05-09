@@ -2,6 +2,7 @@ name: Build
 
 env:
   BUILD_TYPE: Debug
+  ARCH: "x64"
   VCPKG_ROOT: '${{ github.workspace }}/vcpkg'
 
 on:
