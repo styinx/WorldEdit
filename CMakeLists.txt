@@ -44,7 +44,9 @@ endif()
 # Compiler
 #
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API 2182bf5c-ef0d-489a-91da-49dbc3090d2a)
+set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP 1)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang") # Clang
@@ -55,8 +57,8 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU") # GCC
     set(COMPILER_FLAGS_RELEASE "-O3 -DNDEBUG -MT")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") # MSVC
     set(COMPILER_FLAGS "")
-    set(COMPILER_FLAGS_DEBUG "/Zi /Ob0 /Od /RTC1 /MDd")
-    set(COMPILER_FLAGS_RELEASE "/O2 /Ob2 /DNDEBUG /MD")
+    set(COMPILER_FLAGS_DEBUG "/Zi /Ob0 /Od /RTC1 /MTd")
+    set(COMPILER_FLAGS_RELEASE "/O2 /Ob2 /DNDEBUG /MT")
 endif ()
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${COMPILER_FLAGS} ${COMPILER_FLAGS_DEBUG}")
@@ -91,7 +93,10 @@ find_package(wil CONFIG REQUIRED)
 #
 
 include_directories(src)
+include_directories(third_party/dxc/inc)
 include_directories(third_party/imgui)
+include_directories(third_party/Fast-BVH/include)
+include_directories(${DIR_VCPKG_INCLUDE}/directx)
 
 
 #
@@ -103,6 +108,11 @@ set(SRC_ALLOCATORS
     )
 
 set(SRC_ASSETS
+        "src/assets/config/io.hpp"
+        "src/assets/config/key_node.cpp"
+        "src/assets/config/key_node.hpp"
+        "src/assets/config/values.hpp"
+        "src/assets/config/io.cpp"
         "src/assets/msh/mikktspace/mikktspace.h"
         "src/assets/msh/mikktspace/mikktspace.c"
         "src/assets/msh/flat_model_bvh.cpp"
@@ -412,15 +422,27 @@ SET(SRC_ROOT
         "src/commands.hpp"
         )
 
+SET(SOURCES_IMGUI
+        "third_party/imgui/backends/imgui_impl_win32.cpp"
+        "third_party/imgui/misc/cpp/imgui_stdlib.cpp"
+        "third_party/imgui/misc/freetype/imgui_freetype.cpp"
+        "third_party/imgui/imgui.cpp"
+        "third_party/imgui/imgui_demo.cpp"
+        "third_party/imgui/imgui_draw.cpp"
+        "third_party/imgui/imgui_tables.cpp"
+        "third_party/imgui/imgui_widgets.cpp"
+        )
+
 SET(SOURCES_APP
-        "app/src/world_edit.hpp"
-        "app/src/world_edit_commands.cpp"
-        "app/src/world_edit_ui.cpp"
         "app/src/dx_agility_sdk_exports.cpp"
         "app/src/main.cpp"
         "app/src/new_delete_override.cpp"
         "app/src/resource.h"
+        "app/src/world_edit.hpp"
+        "app/src/world_edit_commands.cpp"
+        "app/src/world_edit_ui.cpp"
         "app/src/world_edit.cpp"
+        ${SOURCES_IMGUI}
         )
 
 SET(SOURCES_LIB
@@ -437,6 +459,7 @@ SET(SOURCES_LIB
         ${SRC_UTILITY}
         ${SRC_WORLD}
         ${SRC_ROOT}
+        ${SOURCES_IMGUI}
     )
 
 
@@ -463,16 +486,47 @@ source_group("root" FILES ${SRC_ROOT})
 # Builds
 #
 
-# Build and link 'WorldEdit' binaries
+# Build and link 'WorldEdit' library
 add_library(${PROJECT_NAME}_library ${SOURCES_LIB})
-target_link_libraries(${PROJECT_NAME}_library PRIVATE absl::any absl::log absl::base absl::bits)
+target_link_libraries(${PROJECT_NAME}_library PRIVATE
+        absl::algorithm
+        absl::base
+        absl::debugging
+        absl::flat_hash_map
+        absl::flags
+        absl::memory
+        absl::meta
+        absl::numeric
+        absl::random_random
+        absl::strings
+        absl::synchronization
+        absl::time
+        absl::utility
+    )
 target_link_libraries(${PROJECT_NAME}_library PRIVATE Microsoft::DirectXMath)
 target_link_libraries(${PROJECT_NAME}_library PRIVATE Microsoft::DirectXTex)
 target_link_libraries(${PROJECT_NAME}_library PRIVATE fmt::fmt)
 target_link_libraries(${PROJECT_NAME}_library PRIVATE Freetype::Freetype)
 target_link_libraries(${PROJECT_NAME}_library PRIVATE mimalloc mimalloc-static)
 target_link_libraries(${PROJECT_NAME}_library PRIVATE WIL::WIL)
+target_link_libraries(${PROJECT_NAME}_library PRIVATE dxcompiler.lib
+        d3d12.lib
+        dxgi.lib
+        kernel32.lib
+        user32.lib
+        gdi32.lib
+        winspool.lib
+        comdlg32.lib
+        advapi32.lib
+        shell32.lib
+        ole32.lib
+        oleaut32.lib
+        uuid.lib
+        odbc32.lib
+        odbccp32.lib
+        dxguid.lib)
 
+# Build and link 'WorldEdit' binary
 add_executable(${PROJECT_NAME} ${SOURCES_APP})
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_library)
 
