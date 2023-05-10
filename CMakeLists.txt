@@ -529,6 +529,7 @@ target_link_libraries(${PROJECT_NAME}_library PRIVATE dxcompiler.lib
 # Build and link 'WorldEdit' binary
 add_executable(${PROJECT_NAME} ${SOURCES_APP})
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_library)
+target_sources(${PROJECT_NAME} PRIVATE app/src/resource.rc)
 
 
 #
