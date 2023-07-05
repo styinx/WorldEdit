@@ -70,8 +70,12 @@ add_compile_definitions(NOMINMAX)
 add_compile_definitions(WIN32_LEAN_AND_MEAN)
 add_compile_definitions(WINVER=0x0A00)
 add_compile_definitions(_WIN32_WINNT=0x0A00)
-add_compile_definitions(_DEBUG)
+
 add_compile_definitions(_CONSOLE)
+
+if (CMAKE_BUILD_TYPE EQUAL "DEBUG")
+    add_compile_definitions(_DEBUG)
+endif()
 
 #
 # Linker & Dependencies
@@ -426,6 +430,7 @@ SET(SOURCES_IMGUI
         "third_party/imgui/backends/imgui_impl_win32.cpp"
         "third_party/imgui/misc/cpp/imgui_stdlib.cpp"
         "third_party/imgui/misc/freetype/imgui_freetype.cpp"
+        "third_party/imgui/imgui_internal.h"
         "third_party/imgui/imgui.cpp"
         "third_party/imgui/imgui_demo.cpp"
         "third_party/imgui/imgui_draw.cpp"
