@@ -1,6 +1,6 @@
 0.170
 
-
+- Fixed a bug where hiding the most recently placed would cause future entities of that type to be created as hidden.
 
 0.169
 

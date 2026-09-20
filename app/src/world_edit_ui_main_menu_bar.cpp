@@ -631,6 +631,7 @@ void world_edit::ui_show_create_menu_items() noexcept
          new_object.name =
             world::create_unique_name(_world.objects, base_object->name);
          new_object.layer = creation_layer;
+         new_object.hidden = false;
          new_object.id = world::max_id;
       }
       else {
@@ -658,6 +659,7 @@ void world_edit::ui_show_create_menu_items() noexcept
 
          new_light.name = world::create_unique_name(_world.lights, base_light->name);
          new_light.layer = creation_layer;
+         new_light.hidden = false;
          new_light.id = world::max_id;
       }
       else {
@@ -701,6 +703,7 @@ void world_edit::ui_show_create_menu_items() noexcept
          new_region.name = world::create_unique_name(_world.regions, _world.lights,
                                                      base_region->name);
          new_region.layer = creation_layer;
+         new_region.hidden = false;
          new_region.id = world::max_id;
       }
       else {
@@ -745,6 +748,7 @@ void world_edit::ui_show_create_menu_items() noexcept
 
          new_portal.name =
             world::create_unique_name(_world.portals, base_portal->name);
+         new_portal.hidden = false;
          new_portal.id = world::max_id;
       }
       else {
@@ -770,6 +774,7 @@ void world_edit::ui_show_create_menu_items() noexcept
          new_hintnode.name =
             world::create_unique_name(_world.hintnodes, base_hintnode->name);
          new_hintnode.layer = creation_layer;
+         new_hintnode.hidden = false;
          new_hintnode.id = world::max_id;
       }
       else {
@@ -796,6 +801,7 @@ void world_edit::ui_show_create_menu_items() noexcept
 
          new_barrier.name =
             world::create_unique_name(_world.barriers, base_barrier->name);
+         new_barrier.hidden = false;
          new_barrier.id = world::max_id;
       }
       else {
@@ -821,6 +827,7 @@ void world_edit::ui_show_create_menu_items() noexcept
 
          new_hub.name =
             world::create_unique_name(_world.planning_hubs, base_hub->name);
+         new_hub.hidden = false;
          new_hub.id = world::max_id;
       }
       else {
@@ -847,6 +854,7 @@ void world_edit::ui_show_create_menu_items() noexcept
 
          new_connection.name = world::create_unique_name(_world.planning_connections,
                                                          base_connection->name);
+         new_connection.hidden = false;
          new_connection.id = world::max_id;
       }
       else {
@@ -875,6 +883,7 @@ void world_edit::ui_show_create_menu_items() noexcept
 
          new_boundary.name =
             world::create_unique_name(_world.boundaries, base_boundary->name);
+         new_boundary.hidden = false;
          new_boundary.id = world::max_id;
       }
       else {
