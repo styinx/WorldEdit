@@ -515,10 +515,17 @@ TEST_CASE("world loading", "[World][IO]")
 
    // measurements checks
    {
-      REQUIRE(world.measurements.size() == 1);
+      REQUIRE(world.measurements.size() == 2);
       CHECK(world.measurements[0].name == "Measurement0"sv);
-      CHECK(world.measurements[0].start == float3{1.0f, 0.0f, -0.0f});
-      CHECK(world.measurements[0].end == float3{2.0f, 0.0f, -1.0f});
+      CHECK(world.measurements[0].points.size() == 2);
+      CHECK(world.measurements[0].points[0] == float3{1.0f, 0.0f, -0.0f});
+      CHECK(world.measurements[0].points[1] == float3{2.0f, 0.0f, -1.0f});
+      CHECK(is_unique_id(0, world.measurements));
+
+      CHECK(world.measurements[1].name == "Measurement1"sv);
+      CHECK(world.measurements[1].points.size() == 2);
+      CHECK(world.measurements[1].points[0] == float3{1.0f, 0.0f, -0.0f});
+      CHECK(world.measurements[1].points[1] == float3{2.0f, 0.0f, -1.0f});
       CHECK(is_unique_id(0, world.measurements));
    }
 

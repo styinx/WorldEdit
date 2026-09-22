@@ -7,6 +7,7 @@
 #include "assets/texture/save_env_map.hpp"
 
 #include "edits/add_block.hpp"
+#include "edits/add_measurement_point.hpp"
 #include "edits/add_sector_object.hpp"
 #include "edits/bundle.hpp"
 #include "edits/creation_entity_set.hpp"
@@ -2069,9 +2070,10 @@ void world_edit::place_creation_entity() noexcept
                 _edit_context, {.transparent = true});
    }
    else if (_interaction_targets.creation_entity.is<world::measurement>()) {
-      if (_entity_creation_context.measurement_started) {
-         world::measurement& measurement =
-            _interaction_targets.creation_entity.get<world::measurement>();
+      world::measurement& measurement =
+         _interaction_targets.creation_entity.get<world::measurement>();
+
+      if (measurement.points.size() > 1) {
          world::measurement new_measurement = measurement;
 
          new_measurement.id = _world.next_id.measurements.aquire();
@@ -2085,11 +2087,17 @@ void world_edit::place_creation_entity() noexcept
 
          _edit_stack_world.apply(edits::make_insert_entity(std::move(new_measurement)),
                                  _edit_context);
-
-         _entity_creation_context.measurement_started = false;
+         _edit_stack_world.apply(edits::make_set_value(&measurement.points, {}),
+                                 _edit_context,
+                                 {.closed = true, .transparent = true});
       }
       else {
-         _entity_creation_context.measurement_started = true;
+         _edit_stack_world
+            .apply(edits::make_add_measurement_point(&measurement.points,
+                                                     measurement.points.empty()
+                                                        ? float3{}
+                                                        : measurement.points.back()),
+                   _edit_context);
       }
    }
    else if (_interaction_targets.creation_entity.is<world::entity_group>()) {
@@ -2632,9 +2640,9 @@ void world_edit::place_entity_group(const world::entity_group& group,
       const world::measurement_id new_measurement_id =
          _world.next_id.measurements.aquire();
 
-      new_measurement.start = group.rotation * new_measurement.start + group.position;
-      new_measurement.end = group.rotation * new_measurement.end + group.position;
-      new_measurement.id = new_measurement_id;
+      for (float3& point : new_measurement.points) {
+         point = group.rotation * point + group.position;
+      }
 
       _edit_stack_world.apply(edits::make_insert_entity(std::move(new_measurement)),
                               _edit_context,
@@ -3424,12 +3432,14 @@ void world_edit::align_selection(const float alignment) noexcept
                                selected.get<world::measurement_id>());
 
          if (measurement) {
-            bundle.push_back(
-               edits::make_set_value(&measurement->start,
-                                     round(measurement->start / alignment) * alignment));
-            bundle.push_back(
-               edits::make_set_value(&measurement->end,
-                                     round(measurement->end / alignment) * alignment));
+            std::vector<float3> new_points = measurement->points;
+
+            for (float3& point : new_points) {
+               point = round(point / alignment) * alignment;
+            }
+
+            bundle.push_back(edits::make_set_value(&measurement->points,
+                                                   std::move(new_points)));
          }
       }
       else if (selected.is<world::block_id>()) {

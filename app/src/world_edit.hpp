@@ -764,7 +764,7 @@ private:
       bool hub_sizing_started = false;
       bool connection_link_started = false;
 
-      bool measurement_started = false;
+      bool add_measurement_point_clicked = false;
 
       draw_light_step draw_light_step = draw_light_step::start;
       draw_region_step draw_region_step = draw_region_step::start;

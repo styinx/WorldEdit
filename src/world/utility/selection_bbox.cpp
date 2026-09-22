@@ -6,6 +6,7 @@
 #include "../object_class.hpp"
 #include "../object_classes/billboard_patch_class.hpp"
 #include "../object_classes/light_class.hpp"
+#include "../utility/measurement_utilities.hpp"
 
 #include "math/matrix_funcs.hpp"
 #include "math/quaternion_funcs.hpp"
@@ -320,8 +321,9 @@ auto selection_bbox_for_camera(const world& world,
             find_entity(world.measurements, selected.get<measurement_id>());
 
          if (measurement) {
-            selection_bbox = math::integrate(selection_bbox, measurement->start);
-            selection_bbox = math::integrate(selection_bbox, measurement->end);
+            selection_bbox =
+               math::combine(selection_bbox,
+                             get_measurement_metrics(*measurement).bbox);
          }
       }
       else if (selected.is<block_id>()) {
@@ -636,12 +638,11 @@ auto selection_metrics_for_move(const world& world,
             find_entity(world.measurements, selected.get<measurement_id>());
 
          if (measurement) {
-            selection_bbox = math::integrate(selection_bbox, measurement->start);
-            selection_bbox = math::integrate(selection_bbox, measurement->end);
-
-            centreWS += measurement->start;
-            centreWS += measurement->end;
-            point_count += 2.0f;
+            for (const float3& point : measurement->points) {
+               selection_bbox = math::integrate(selection_bbox, point);
+               centreWS += point;
+               point_count += 1.0f;
+            }
          }
       }
       else if (selected.is<block_id>()) {

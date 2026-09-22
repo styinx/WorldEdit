@@ -7,6 +7,7 @@
 #include "../object_class.hpp"
 #include "../object_classes/billboard_patch_class.hpp"
 #include "../object_classes/light_class.hpp"
+#include "../utility/measurement_utilities.hpp"
 
 #include "math/quaternion_funcs.hpp"
 #include "math/vector_funcs.hpp"
@@ -484,8 +485,8 @@ auto entity_group_metrics(const entity_group& group,
    }
 
    for (const measurement& measurement : group.measurements) {
-      group_bbox = math::integrate(group_bbox, measurement.start);
-      group_bbox = math::integrate(group_bbox, measurement.end);
+      group_bbox =
+         math::combine(group_bbox, get_measurement_metrics(measurement).bbox);
    }
 
    for (const block_description_box& box : group.blocks.boxes) {
@@ -597,9 +598,10 @@ void centre_entity_group(entity_group& group) noexcept
    }
 
    for (const measurement& measurement : group.measurements) {
-      position += measurement.start;
-      position += measurement.end;
-      count += 2.0f;
+      for (const float3& point : measurement.points) {
+         position += point;
+         count += 1.0f;
+      }
    }
 
    for (const block_description_box& box : group.blocks.boxes) {
@@ -690,8 +692,9 @@ void centre_entity_group(entity_group& group) noexcept
    }
 
    for (measurement& measurement : group.measurements) {
-      measurement.start -= centre;
-      measurement.end -= centre;
+      for (float3& point : measurement.points) {
+         point -= centre;
+      }
    }
 
    for (block_description_box& box : group.blocks.boxes) {

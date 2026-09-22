@@ -598,11 +598,28 @@ auto read_measurement(const assets::config::node& node) -> measurement
    measurement.name = node.values.get<std::string>(0);
 
    for (auto& measurement_prop : node) {
-      if (string::iequals(measurement_prop.key, "Start"sv)) {
-         measurement.start = read_position(measurement_prop);
+      if (string::iequals(measurement_prop.key, "Point"sv)) {
+         measurement.points.push_back({measurement_prop.values.get<float>(0),
+                                       measurement_prop.values.get<float>(1),
+                                       -measurement_prop.values.get<float>(2)});
+      }
+      else if (string::iequals(measurement_prop.key, "Start"sv)) {
+         if (measurement.points.size() != 2) {
+            measurement.points.resize(2);
+         }
+
+         measurement.points[0] = {measurement_prop.values.get<float>(0),
+                                  measurement_prop.values.get<float>(1),
+                                  -measurement_prop.values.get<float>(2)};
       }
       else if (string::iequals(measurement_prop.key, "End"sv)) {
-         measurement.end = read_position(measurement_prop);
+         if (measurement.points.size() != 2) {
+            measurement.points.resize(2);
+         }
+
+         measurement.points[1] = {measurement_prop.values.get<float>(0),
+                                  measurement_prop.values.get<float>(1),
+                                  -measurement_prop.values.get<float>(2)};
       }
    }
 

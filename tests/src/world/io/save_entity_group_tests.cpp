@@ -1069,8 +1069,8 @@ TEST_CASE("world save entity group (measurements)", "[World][IO]")
    const std::string_view expected_eng =
       R"(Measurement("Measurement0")
 {
-	Start(1.000000, 0.000000, 0.000000);
-	End(2.000000, 0.000000, 1.000000);
+	Point(1.000000, 0.000000, 0.000000);
+	Point(2.000000, 0.000000, 1.000000);
 }
 
 )";
@@ -1079,8 +1079,7 @@ TEST_CASE("world save entity group (measurements)", "[World][IO]")
       .measurements =
          {
             measurement{
-               .start = float3{1.0f, 0.0f, -0.0f},
-               .end = float3{2.0f, 0.0f, -1.0f},
+               .points = {{1.0f, 0.0f, -0.0f}, {2.0f, 0.0f, -1.0f}},
                .name = "Measurement0",
             },
          },

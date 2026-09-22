@@ -264,8 +264,7 @@ const we::world::world
           entities_init,
           std::initializer_list{
              measurement{
-                .start = {1.0f, 1.0f, 1.0f},
-                .end = {2.0f, 2.0f, 2.0f},
+                .points = {{1.0f, 1.0f, 1.0f}, {2.0f, 2.0f, 2.0f}},
              },
           },
        }};

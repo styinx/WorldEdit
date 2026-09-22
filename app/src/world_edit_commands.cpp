@@ -369,6 +369,9 @@ void world_edit::initialize_commands() noexcept
                  _entity_creation_context.rotate_forward);
    _commands.add("entity_creation.rotate_back"s, _entity_creation_context.rotate_back);
 
+   _commands.add("entity_creation.add_measurement_point"s,
+                 _entity_creation_context.add_measurement_point_clicked);
+
    _commands.add("entity_creation.place"s, [this] {
       if (not _rotate_camera) place_creation_entity();
    });
@@ -1137,6 +1140,21 @@ void world_edit::initialize_hotkeys() noexcept
          },
 
       .hidden = true,
+   });
+
+   _hotkeys.add_set({
+      .name = "Entity Creation (Measurement)",
+      .description = "Active when creating world measurement.",
+      .activated =
+         [this] {
+            return _interaction_targets.creation_entity.is<world::measurement>();
+         },
+      .default_hotkeys =
+         {
+            {"Add Measurement Point",
+             "entity_creation.add_measurement_point",
+             {.key = key::mouse1, .modifiers = {.shift = true}}},
+         },
    });
 
    _hotkeys.add_set({

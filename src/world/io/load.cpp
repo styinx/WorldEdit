@@ -1237,15 +1237,29 @@ void load_measurements(const io::path& filepath, output_stream& output, world& w
             measurement.id = world_out.next_id.measurements.aquire();
 
             for (auto& child_key_node : key_node) {
-               if (child_key_node.key == "Start"sv) {
-                  measurement.start = {child_key_node.values.get<float>(0),
-                                       child_key_node.values.get<float>(1),
-                                       -child_key_node.values.get<float>(2)};
+               if (child_key_node.key == "Point"sv) {
+                  measurement.points.push_back(
+                     {child_key_node.values.get<float>(0),
+                      child_key_node.values.get<float>(1),
+                      -child_key_node.values.get<float>(2)});
+               }
+               else if (child_key_node.key == "Start"sv) {
+                  if (measurement.points.size() != 2) {
+                     measurement.points.resize(2);
+                  }
+
+                  measurement.points[0] = {child_key_node.values.get<float>(0),
+                                           child_key_node.values.get<float>(1),
+                                           -child_key_node.values.get<float>(2)};
                }
                else if (child_key_node.key == "End"sv) {
-                  measurement.end = {child_key_node.values.get<float>(0),
-                                     child_key_node.values.get<float>(1),
-                                     -child_key_node.values.get<float>(2)};
+                  if (measurement.points.size() != 2) {
+                     measurement.points.resize(2);
+                  }
+
+                  measurement.points[1] = {child_key_node.values.get<float>(0),
+                                           child_key_node.values.get<float>(1),
+                                           -child_key_node.values.get<float>(2)};
                }
             }
 

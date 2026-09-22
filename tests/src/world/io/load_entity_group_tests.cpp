@@ -487,7 +487,7 @@ TEST_CASE("world entity group loading (boundaries)", "[World][IO]")
    CHECK(group.boundaries[0].points[11] == float3{332.062256f, 1.0f, 196.882675f});
 }
 
-TEST_CASE("world entity group loading (measurements)", "[World][IO]")
+TEST_CASE("world entity group loading (measurements, old)", "[World][IO]")
 {
    null_output_stream out;
    const entity_group group =
@@ -495,8 +495,22 @@ TEST_CASE("world entity group loading (measurements)", "[World][IO]")
 
    REQUIRE(group.measurements.size() == 1);
    CHECK(group.measurements[0].name == "Measurement0"sv);
-   CHECK(group.measurements[0].start == float3{1.0f, 0.0f, -0.0f});
-   CHECK(group.measurements[0].end == float3{2.0f, 0.0f, -1.0f});
+   CHECK(group.measurements[0].points.size() == 2);
+   CHECK(group.measurements[0].points[0] == float3{1.0f, 0.0f, -0.0f});
+   CHECK(group.measurements[0].points[1] == float3{2.0f, 0.0f, -1.0f});
+}
+
+TEST_CASE("world entity group loading (measurements, new)", "[World][IO]")
+{
+   null_output_stream out;
+   const entity_group group =
+      load_entity_group("data/entity_groups/test_measurements_new.eng", out);
+
+   REQUIRE(group.measurements.size() == 1);
+   CHECK(group.measurements[0].name == "Measurement0"sv);
+   CHECK(group.measurements[0].points.size() == 2);
+   CHECK(group.measurements[0].points[0] == float3{1.0f, 0.0f, -0.0f});
+   CHECK(group.measurements[0].points[1] == float3{2.0f, 0.0f, -1.0f});
 }
 
 TEST_CASE("world entity group loading (blocks, boxes)", "[World][IO]")

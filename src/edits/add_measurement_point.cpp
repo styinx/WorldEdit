@@ -4,10 +4,10 @@
 
 namespace we::edits {
 
-auto make_add_sector_object(std::vector<uint32>* objects, uint32 object_index)
+auto make_add_measurement_point(std::vector<float3>* points, const float3& point)
    -> std::unique_ptr<edit<world::edit_context>>
 {
-   return make_add_vector_entry(objects, object_index);
+   return make_add_vector_entry(points, point);
 }
 
 }

@@ -429,6 +429,7 @@
     <ClCompile Include="src\edits\add_branch_weight.cpp" />
     <ClCompile Include="src\edits\add_game_mode.cpp" />
     <ClCompile Include="src\edits\add_layer.cpp" />
+    <ClCompile Include="src\edits\add_measurement_point.cpp" />
     <ClCompile Include="src\edits\add_property.cpp" />
     <ClCompile Include="src\edits\add_sector_object.cpp" />
     <ClCompile Include="src\edits\add_sun_flare.cpp" />
@@ -705,6 +706,7 @@
     <ClCompile Include="src\world\utility\evaluate_treeline.cpp" />
     <ClCompile Include="src\world\utility\intersects_frustum.cpp" />
     <ClCompile Include="src\world\utility\is_similar.cpp" />
+    <ClCompile Include="src\world\utility\measurement_utilities.cpp" />
     <ClCompile Include="src\world\utility\multi_select_support.cpp" />
     <ClCompile Include="src\world\utility\temporary_object_classes.cpp" />
     <ClCompile Include="src\world\utility\terrain_light_map_baker.cpp" />
@@ -842,10 +844,12 @@
     <ClInclude Include="src\edits\add_branch_weight.hpp" />
     <ClInclude Include="src\edits\add_game_mode.hpp" />
     <ClInclude Include="src\edits\add_layer.hpp" />
+    <ClInclude Include="src\edits\add_measurement_point.hpp" />
     <ClInclude Include="src\edits\add_sector_object.hpp" />
     <ClInclude Include="src\edits\add_sun_flare.hpp" />
     <ClInclude Include="src\edits\add_tree_line.hpp" />
     <ClInclude Include="src\edits\add_tree_line_border_odf.hpp" />
+    <ClInclude Include="src\edits\add_vector_entry.hpp" />
     <ClInclude Include="src\edits\add_world_req_list.hpp" />
     <ClInclude Include="src\edits\bundle.hpp" />
     <ClInclude Include="src\edits\creation_entity_set.hpp" />
@@ -1108,6 +1112,7 @@
     <ClInclude Include="src\world\light.hpp" />
     <ClInclude Include="src\world\global_lights.hpp" />
     <ClInclude Include="src\world\measurement.hpp" />
+    <ClInclude Include="src\world\model_library.hpp" />
     <ClInclude Include="src\world\object.hpp" />
     <ClInclude Include="src\world\object_attached.hpp" />
     <ClInclude Include="src\world\object_class.hpp" />
@@ -1142,6 +1147,7 @@
     <ClInclude Include="src\world\utility\evaluate_treeline.hpp" />
     <ClInclude Include="src\world\utility\intersects_frustum.hpp" />
     <ClInclude Include="src\world\utility\is_similar.hpp" />
+    <ClInclude Include="src\world\utility\measurement_utilities.hpp" />
     <ClInclude Include="src\world\utility\multi_select_support.hpp" />
     <ClInclude Include="src\world\utility\select_common.hpp" />
     <ClInclude Include="src\world\utility\temporary_object_classes.hpp" />

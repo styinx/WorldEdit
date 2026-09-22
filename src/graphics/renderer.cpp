@@ -47,6 +47,7 @@
 #include "world/object_classes/billboard_patch_class.hpp"
 #include "world/object_classes/light_class.hpp"
 #include "world/utility/evaluate_treeline.hpp"
+#include "world/utility/measurement_utilities.hpp"
 #include "world/utility/region_properties.hpp"
 #include "world/utility/world_utilities.hpp"
 #include "world/world.hpp"
@@ -2637,22 +2638,20 @@ void renderer_impl::draw_world_meta_objects(
       const float2 viewport_size = {static_cast<float>(_swap_chain.width()),
                                     static_cast<float>(_swap_chain.height())};
 
-      const auto add_measurement = [&](const world::measurement& measurement,
-                                       const float3& measurement_startWS,
-                                       const float3& measurement_endWS) {
-         if (measurement.hidden) return;
+      const auto add_measurement = [&](const world::measurement& measurement) {
+         const world::measurement_metrics metrics =
+            world::get_measurement_metrics(measurement);
 
-         const math::bounding_box bbox{.min = min(measurement_startWS, measurement_endWS),
-                                       .max = max(measurement_startWS, measurement_endWS)};
+         if (not intersects(view_frustum, metrics.bbox)) return;
 
-         if (not intersects(view_frustum, bbox)) return;
+         for (std::size_t i = 1; i < measurement.points.size(); ++i) {
+            _meta_draw_batcher.add_line_solid(measurement.points[i - 1],
+                                              measurement.points[i],
+                                              measurement_color);
+         }
 
-         _meta_draw_batcher.add_line_solid(measurement_startWS,
-                                           measurement_endWS, measurement_color);
-
-         const float3 centreWS = (measurement_startWS + measurement_endWS) * 0.5f;
          const float4 centrePS =
-            camera.projection_from_world() * float4{centreWS, 1.0f};
+            camera.projection_from_world() * float4{metrics.centre, 1.0f};
          const float inv_w = 1.0f / centrePS.w;
          const float3 centreNDC = {centrePS.x * inv_w, centrePS.y * inv_w,
                                    centrePS.z * inv_w};
@@ -2668,8 +2667,7 @@ void renderer_impl::draw_world_meta_objects(
          std::array<char, 128> text;
 
          const char* const text_end =
-            fmt::format_to_n(text.data(), text.size(), "{:.2f}m",
-                             distance(measurement_startWS, measurement_endWS))
+            fmt::format_to_n(text.data(), text.size(), "{:.2f}m", metrics.length)
                .out;
 
          const ImVec2 text_size = ImGui::CalcTextSize(text.data(), text_end);
@@ -2685,14 +2683,16 @@ void renderer_impl::draw_world_meta_objects(
       };
 
       for (const world::measurement& measurement : world.measurements) {
-         add_measurement(measurement, measurement.start, measurement.end);
+         if (measurement.hidden) continue;
+
+         add_measurement(measurement);
       }
 
       if (interaction_targets.creation_entity.is<world::measurement>()) {
          const world::measurement& measurement =
             interaction_targets.creation_entity.get<world::measurement>();
 
-         add_measurement(measurement, measurement.start, measurement.end);
+         add_measurement(measurement);
       }
       else if (interaction_targets.creation_entity.is<world::entity_group>()) {
          const world::entity_group& group =
@@ -2700,9 +2700,52 @@ void renderer_impl::draw_world_meta_objects(
 
          for (const world::measurement& measurement :
               interaction_targets.creation_entity.get<world::entity_group>().measurements) {
-            add_measurement(measurement,
-                            group.rotation * measurement.start + group.position,
-                            group.rotation * measurement.end + group.position);
+            const world::measurement_metrics metrics =
+               world::get_measurement_metrics(measurement);
+
+            const math::bounding_box bboxWS =
+               group.rotation * metrics.bbox + group.position;
+
+            if (not intersects(view_frustum, bboxWS)) return;
+
+            for (std::size_t i = 1; i < measurement.points.size(); ++i) {
+               _meta_draw_batcher.add_line_solid(
+                  group.rotation * measurement.points[i - 1] + group.position,
+                  group.rotation * measurement.points[i] + group.position,
+                  measurement_color);
+            }
+
+            const float3 centreWS = group.rotation * metrics.centre + group.position;
+            const float4 centrePS =
+               camera.projection_from_world() * float4{centreWS, 1.0f};
+            const float inv_w = 1.0f / centrePS.w;
+            const float3 centreNDC = {centrePS.x * inv_w, centrePS.y * inv_w,
+                                      centrePS.z * inv_w};
+
+            if (centreNDC.x > 1.0f or centreNDC.x < -1.0f or centreNDC.y > 1.0f or
+                centreNDC.y < -1.0f or centreNDC.z < 0.0f or centreNDC.z > 1.0f) {
+               return;
+            }
+
+            const float2 positionRT = {(centreNDC.x + 1.0f) * viewport_size.x * 0.5f,
+                                       (1.0f - centreNDC.y) * viewport_size.y * 0.5f};
+
+            std::array<char, 128> text;
+
+            const char* const text_end =
+               fmt::format_to_n(text.data(), text.size(), "{:.2f}m", metrics.length)
+                  .out;
+
+            const ImVec2 text_size = ImGui::CalcTextSize(text.data(), text_end);
+            const float2 text_size_half = {text_size.x * 0.5f, text_size.y * 0.5f};
+
+            ImGui::GetBackgroundDrawList()->AddRectFilled(
+               {positionRT.x - text_size_half.x, positionRT.y - text_size_half.y},
+               {positionRT.x + text_size_half.x, positionRT.y + text_size_half.y},
+               0x60'00'00'00);
+            ImGui::GetBackgroundDrawList()->AddText(
+               {positionRT.x - text_size_half.x, positionRT.y - text_size_half.y},
+               0xff'ff'ff'ff, text.data(), text_end);
          }
       }
    }
@@ -3921,8 +3964,10 @@ void renderer_impl::draw_interaction_targets(
       [&](const world::measurement& measurement, const float3 color) {
          const uint32 packed_color = utility::pack_srgb_bgra({color, 1.0f});
 
-         _meta_draw_batcher.add_line_solid(measurement.start, measurement.end,
-                                           packed_color);
+         for (std::size_t i = 1; i < measurement.points.size(); ++i) {
+            _meta_draw_batcher.add_line_solid(measurement.points[i - 1],
+                                              measurement.points[i], packed_color);
+         }
       },
    };
 

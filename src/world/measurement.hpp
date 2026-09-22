@@ -3,15 +3,17 @@
 #include "id.hpp"
 #include "types.hpp"
 
+#include "math/bounding_box.hpp"
+
 #include <string>
+#include <vector>
 
 namespace we::world {
 
 struct measurement {
    bool hidden = false;
 
-   float3 start{};
-   float3 end{};
+   std::vector<float3> points;
 
    std::string name;
 

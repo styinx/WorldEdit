@@ -4,6 +4,7 @@
 #include "../object_class_library.hpp"
 #include "../object_classes/billboard_patch_class.hpp"
 #include "../object_classes/light_class.hpp"
+#include "../utility/measurement_utilities.hpp"
 
 #include "math/quaternion_funcs.hpp"
 #include "math/vector_funcs.hpp"
@@ -288,10 +289,7 @@ bool intersects(const frustum& frustumWS, const boundary& boundary,
 
 bool intersects(const frustum& frustumWS, const measurement& measurement) noexcept
 {
-   math::bounding_box bboxWS{min(measurement.start, measurement.end),
-                             max(measurement.start, measurement.end)};
-
-   return intersects(frustumWS, bboxWS);
+   return intersects(frustumWS, get_measurement_metrics(measurement).bbox);
 }
 
 }

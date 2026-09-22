@@ -1,7 +1,10 @@
 #include "world_edit.hpp"
 
 #include "edits/creation_entity_set.hpp"
+
 #include "math/vector_funcs.hpp"
+
+#include "world/utility/measurement_utilities.hpp"
 
 #include <imgui.h>
 
@@ -61,7 +64,7 @@ void world_edit::ui_show_measurement_tool() noexcept
                                  ImGuiSelectableFlags_SpanAllColumns);
             const bool hover = ImGui::IsItemHovered();
             ImGui::TableNextColumn();
-            ImGui::Text("%.2fm", distance(measurement.start, measurement.end));
+            ImGui::Text("%.2fm", world::get_measurement_metrics(measurement).length);
 
             if (select) {
                if (ImGui::GetIO().KeyCtrl) {

@@ -446,11 +446,14 @@ void world_edit::ui_show_world_selection_move_with_cursor() noexcept
                                   selected.get<world::measurement_id>());
 
             if (measurement) {
-               bundled_edits.push_back(
-                  edits::make_set_multi_value(&measurement->start,
-                                              create_new_position(measurement->start),
-                                              &measurement->end,
-                                              create_new_position(measurement->end)));
+               std::vector<float3> new_points = measurement->points;
+
+               for (float3& point : new_points) {
+                  point = create_new_position(point);
+               }
+
+               bundled_edits.push_back(edits::make_set_value(&measurement->points,
+                                                             std::move(new_points)));
             }
          }
          else if (selected.is<world::block_id>()) {
@@ -836,11 +839,14 @@ void world_edit::ui_show_world_selection_move_with_cursor() noexcept
                                   selected.get<world::measurement_id>());
 
             if (measurement) {
-               bundled_edits.push_back(edits::make_set_multi_value(
-                  &measurement->start,
-                  (rotation * (measurement->start - centreWS)) + centreWS,
-                  &measurement->end,
-                  (rotation * (measurement->end - centreWS)) + centreWS));
+               std::vector<float3> new_points = measurement->points;
+
+               for (float3& point : new_points) {
+                  point = (rotation * (point - centreWS)) + centreWS;
+               }
+
+               bundled_edits.push_back(edits::make_set_value(&measurement->points,
+                                                             std::move(new_points)));
             }
          }
          else if (selected.is<world::block_id>()) {

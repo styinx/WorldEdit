@@ -11,6 +11,7 @@
 
 #include "world/blocks/utility/bounding_box.hpp"
 #include "world/blocks/utility/find.hpp"
+#include "world/utility/measurement_utilities.hpp"
 #include "world/utility/world_utilities.hpp"
 
 #include <numbers>
@@ -132,9 +133,12 @@ void world_edit::ui_show_world_selection_rotate() noexcept
                                   selected.get<world::measurement_id>());
 
             if (measurement) {
-               selection_centre += measurement->start;
-               selection_centre += measurement->end;
-               selection_axis_count += {2.0f, 2.0f, 2.0f};
+               for (const float3& point : measurement->points) {
+                  selection_centre += point;
+               }
+
+               selection_axis_count +=
+                  static_cast<float>(measurement->points.size());
             }
          }
          else if (selected.is<world::boundary_id>()) {
@@ -393,16 +397,24 @@ void world_edit::ui_show_world_selection_rotate() noexcept
                                      selected.get<world::measurement_id>());
 
                if (measurement) {
-                  const float3 centre = (measurement->start + measurement->end) * 0.5f;
+                  float3 centre;
+
+                  for (const float3& point : measurement->points) {
+                     centre += point;
+                  }
+
+                  centre /= static_cast<float>(measurement->points.size());
+
+                  std::vector<float3> new_points = measurement->points;
+
+                  for (float3& point : new_points) {
+                     const float3 rotated_point = rotation * (point - centre);
+
+                     point = rotated_point + centre;
+                  }
 
                   bundled_edits.push_back(
-                     edits::make_set_value(&measurement->start,
-                                           (rotation * (measurement->start - centre)) +
-                                              centre));
-                  bundled_edits.push_back(
-                     edits::make_set_value(&measurement->end,
-                                           (rotation * (measurement->end - centre)) +
-                                              centre));
+                     edits::make_set_value(&measurement->points, std::move(new_points)));
                }
             }
             else if (selected.is<world::block_id>()) {

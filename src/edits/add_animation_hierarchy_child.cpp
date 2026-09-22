@@ -1,51 +1,13 @@
 #include "add_animation_hierarchy_child.hpp"
 
+#include "add_vector_entry.hpp"
+
 namespace we::edits {
-
-namespace {
-
-template<typename T>
-struct add_animation_hierarchy_child final : edit<world::edit_context> {
-   add_animation_hierarchy_child(std::vector<uint32>* children, uint32 new_child)
-      : children{children}, new_child{std::move(new_child)}
-   {
-   }
-
-   void apply([[maybe_unused]] world::edit_context& context) noexcept override
-   {
-      assert(context.is_memory_valid(children));
-
-      children->push_back(std::move(new_child));
-   }
-
-   void revert([[maybe_unused]] world::edit_context& context) noexcept override
-   {
-      assert(context.is_memory_valid(children));
-
-      std::swap(new_child, children->back());
-
-      children->pop_back();
-   }
-
-   bool is_coalescable([[maybe_unused]] const edit& other) const noexcept override
-   {
-      return false;
-   }
-
-   void coalesce([[maybe_unused]] edit& other) noexcept override {}
-
-private:
-   std::vector<uint32>* children;
-   uint32 new_child;
-};
-
-}
 
 auto make_add_animation_hierarchy_child(std::vector<uint32>* children, uint32 new_child)
    -> std::unique_ptr<edit<world::edit_context>>
 {
-   return std::make_unique<add_animation_hierarchy_child<uint32>>(children,
-                                                                  std::move(new_child));
+   return make_add_vector_entry(children, new_child);
 }
 
 }

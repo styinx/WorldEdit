@@ -486,10 +486,9 @@ void save_entity_group_impl(File& file, const entity_group& group)
       file.write_ln("Measurement(\"{}\")", measurement.name);
       file.write_ln("{");
 
-      file.write_ln("\tStart({:f}, {:f}, {:f});", measurement.start.x,
-                    measurement.start.y, -measurement.start.z);
-      file.write_ln("\tEnd({:f}, {:f}, {:f});", measurement.end.x,
-                    measurement.end.y, -measurement.end.z);
+      for (const float3& point : measurement.points) {
+         file.write_ln("\tPoint({:f}, {:f}, {:f});", point.x, point.y, -point.z);
+      }
 
       file.write_ln("}\n");
    }

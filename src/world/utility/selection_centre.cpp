@@ -127,9 +127,10 @@ auto selection_centre_for_rotate_around(const world& world,
             find_entity(world.measurements, selected.get<measurement_id>());
 
          if (measurement) {
-            selection_centre += measurement->start;
-            selection_centre += measurement->end;
-            selection_axis_count += {2.0f, 2.0f, 2.0f};
+            for (const float3& point : measurement->points) {
+               selection_centre += point;
+               selection_axis_count += 1.0f;
+            }
          }
       }
       else if (selected.is<block_id>()) {
@@ -312,9 +313,10 @@ auto selection_centre_for_env_map(const world& world,
             find_entity(world.measurements, selected.get<measurement_id>());
 
          if (measurement) {
-            selection_centre += measurement->start;
-            selection_centre += measurement->end;
-            selection_axis_count += {2.0f, 2.0f, 2.0f};
+            for (const float3& point : measurement->points) {
+               selection_centre += point;
+               selection_axis_count += 1.0f;
+            }
          }
       }
       else if (selected.is<block_id>()) {

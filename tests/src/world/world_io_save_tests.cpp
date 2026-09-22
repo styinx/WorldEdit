@@ -681,14 +681,14 @@ constexpr auto expected_msr = R"(MeasurementCount(2);
 
 Measurement("Measurement0")
 {
-	Start(1.000000, 0.000000, 0.000000);
-	End(2.000000, 0.000000, 1.000000);
+	Point(1.000000, 0.000000, 0.000000);
+	Point(2.000000, 0.000000, 1.000000);
 }
 
 Measurement("")
 {
-	Start(1.000000, 0.000000, -5.500000);
-	End(-1.000000, 0.000000, 0.000000);
+	Point(1.000000, 0.000000, -5.500000);
+	Point(-1.000000, 0.000000, 0.000000);
 }
 
 )"sv;
@@ -1468,10 +1468,9 @@ TEST_CASE("world saving", "[World][IO]")
          {
             entities_init,
             std::initializer_list{
-               measurement{.start = {1.0f, 0.0f, -0.0f},
-                           .end = {2.0f, 0.0f, -1.0f},
+               measurement{.points = {{1.0f, 0.0f, -0.0f}, {2.0f, 0.0f, -1.0f}},
                            .name = "Measurement0"},
-               measurement{.start = {1.0f, 0.0f, 5.5f}, .end = {-1.0f, 0.0f, -0.0f}, .name = ""},
+               measurement{.points = {{1.0f, 0.0f, 5.5f}, {-1.0f, 0.0f, -0.0f}}, .name = ""},
             },
          },
 

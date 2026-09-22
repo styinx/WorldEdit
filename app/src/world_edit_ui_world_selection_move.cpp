@@ -11,6 +11,7 @@
 
 #include "world/blocks/utility/bounding_box.hpp"
 #include "world/blocks/utility/find.hpp"
+#include "world/utility/measurement_utilities.hpp"
 #include "world/utility/world_utilities.hpp"
 
 #pragma warning(default : 4061) // enumerator 'identifier' in switch of enum 'enumeration' is not explicitly handled by a case label
@@ -173,9 +174,8 @@ void world_edit::ui_show_world_selection_move() noexcept
                                   selected.get<world::measurement_id>());
 
             if (measurement) {
-               selection_centre += measurement->start;
-               selection_centre += measurement->end;
-               selection_axis_count += {2.0f, 2.0f, 2.0f};
+               selection_centre += world::get_measurement_metrics(*measurement).centre;
+               selection_axis_count += 1.0f;
             }
          }
          else if (selected.is<world::block_id>()) {
@@ -387,12 +387,12 @@ void world_edit::ui_show_world_selection_move() noexcept
                                      selected.get<world::measurement_id>());
 
                if (measurement) {
+                  std::vector<float3> new_points = measurement->points;
+
+                  for (float3& point : new_points) point += move_delta;
+
                   bundled_edits.push_back(
-                     edits::make_set_value(&measurement->start,
-                                           measurement->start + move_delta));
-                  bundled_edits.push_back(
-                     edits::make_set_value(&measurement->end,
-                                           measurement->end + move_delta));
+                     edits::make_set_value(&measurement->points, std::move(new_points)));
                }
             }
             else if (selected.is<world::block_id>()) {

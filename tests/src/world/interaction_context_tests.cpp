@@ -136,7 +136,7 @@ TEST_CASE("world creation_entity", "[World]")
                           {332.111023f, 1.0f, -196.797791f},
                        }});
    check_type(entity_group{});
-   check_type(measurement{.start = {0.0f, 0.5f, 0.0f}, .name = "Measurement"});
+   check_type(measurement{.points = {{0.0f, 0.5f, 0.0f}, {}}, .name = "Measurement"});
 
    creation_entity other_entity{creation_entity_none};
 

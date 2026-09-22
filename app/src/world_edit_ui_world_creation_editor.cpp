@@ -1,5 +1,6 @@
 #include "world_edit.hpp"
 
+#include "edits/add_measurement_point.hpp"
 #include "edits/add_property.hpp"
 #include "edits/creation_entity_set.hpp"
 #include "edits/delete_path_property.hpp"
@@ -20,6 +21,7 @@
 #include "world/utility/barrier_construction.hpp"
 #include "world/utility/entity_group_utilities.hpp"
 #include "world/utility/hintnode_traits.hpp"
+#include "world/utility/measurement_utilities.hpp"
 #include "world/utility/path_properties.hpp"
 #include "world/utility/region_properties.hpp"
 #include "world/utility/snapping.hpp"
@@ -3934,11 +3936,19 @@ void world_edit::ui_show_world_creation_editor() noexcept
       ImGui::InputText("Name", &measurement.name, _edit_stack_world, _edit_context);
 
       ImGui::LabelText("Length", "%.2fm",
-                       distance(measurement.start, measurement.end));
+                       world::get_measurement_metrics(measurement).length);
 
-      const float3 current_position = _entity_creation_context.measurement_started
-                                         ? measurement.end
-                                         : measurement.start;
+      if (std::exchange(_entity_creation_context.add_measurement_point_clicked, false) or
+          measurement.points.empty()) {
+         _edit_stack_world
+            .apply(edits::make_add_measurement_point(&measurement.points,
+                                                     measurement.points.empty()
+                                                        ? float3{}
+                                                        : measurement.points.back()),
+                   _edit_context, {.transparent = true});
+      }
+
+      const float3 current_position = measurement.points.back();
 
       if (using_cursor_placement) {
          float3 new_position = current_position;
@@ -3960,15 +3970,12 @@ void world_edit::ui_show_world_creation_editor() noexcept
          }
 
          if (new_position != current_position) {
-            const bool started = _entity_creation_context.measurement_started;
-
-            _edit_stack_world.apply(edits::make_set_multi_value(&measurement.start,
-                                                                started
-                                                                   ? measurement.start
-                                                                   : new_position,
-                                                                &measurement.end,
-                                                                new_position),
-                                    _edit_context, {.transparent = true});
+            _edit_stack_world
+               .apply(edits::make_set_vector_value(&measurement.points,
+                                                   static_cast<uint32>(
+                                                      measurement.points.size() - 1),
+                                                   new_position),
+                      _edit_context, {.transparent = true});
          }
       }
 

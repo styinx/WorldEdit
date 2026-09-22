@@ -251,14 +251,14 @@ void world_edit::ui_show_world_selection_rotate_around_centre() noexcept
                                      selected.get<world::measurement_id>());
 
                if (measurement) {
+                  std::vector<float3> new_points = measurement->points;
+
+                  for (float3& point : new_points) {
+                     point = rotation * (point - centre) + centre;
+                  }
+
                   bundled_edits.push_back(
-                     edits::make_set_value(&measurement->start,
-                                           (rotation * (measurement->start - centre)) +
-                                              centre));
-                  bundled_edits.push_back(
-                     edits::make_set_value(&measurement->end,
-                                           (rotation * (measurement->end - centre)) +
-                                              centre));
+                     edits::make_set_value(&measurement->points, std::move(new_points)));
                }
             }
             else if (selected.is<world::block_id>()) {

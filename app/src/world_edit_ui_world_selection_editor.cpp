@@ -22,6 +22,7 @@
 #include "world/blocks/utility/find.hpp"
 #include "world/utility/grounding.hpp"
 #include "world/utility/hintnode_traits.hpp"
+#include "world/utility/measurement_utilities.hpp"
 #include "world/utility/multi_select_support.hpp"
 #include "world/utility/object_properties.hpp"
 #include "world/utility/path_properties.hpp"
@@ -1766,12 +1767,8 @@ void world_edit::ui_show_world_selection_editor() noexcept
 
                ImGui::InputText("Name", &measurement->name, _edit_stack_world,
                                 _edit_context, [](std::string*) noexcept {});
-               ImGui::DragFloat3("Start", &measurement->start,
-                                 _edit_stack_world, _edit_context, 0.25f);
-               ImGui::DragFloat3("End", &measurement->end, _edit_stack_world,
-                                 _edit_context, 0.25f);
                ImGui::LabelText("Length", "%.2fm",
-                                distance(measurement->start, measurement->end));
+                                world::get_measurement_metrics(*measurement).length);
             }
             else {
                selection_open = false;

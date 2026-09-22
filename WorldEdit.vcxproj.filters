@@ -350,6 +350,8 @@
     <ClCompile Include="src\graphics\shaders\billboard_patch_dustVS.cpp" />
     <ClCompile Include="src\world\object_classes\utility\scanf.cpp" />
     <ClCompile Include="src\world\object_classes\light_class.cpp" />
+    <ClCompile Include="src\edits\add_measurement_point.cpp" />
+    <ClCompile Include="src\world\utility\measurement_utilities.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\assets\config\io.hpp" />
@@ -757,6 +759,10 @@
     <ClInclude Include="src\world\object_classes\utility\svscanf.hpp" />
     <ClInclude Include="src\world\object_classes\utility\scanf.hpp" />
     <ClInclude Include="src\world\object_classes\light_class.hpp" />
+    <ClInclude Include="src\world\model_library.hpp" />
+    <ClInclude Include="src\world\utility\measurement_utilities.hpp" />
+    <ClInclude Include="src\edits\add_vector_entry.hpp" />
+    <ClInclude Include="src\edits\add_measurement_point.hpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders\WorldEdit.shaders" />

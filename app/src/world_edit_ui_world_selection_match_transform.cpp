@@ -11,6 +11,7 @@
 
 #include "world/blocks/utility/bounding_box.hpp"
 #include "world/blocks/utility/find.hpp"
+#include "world/utility/measurement_utilities.hpp"
 #include "world/utility/world_utilities.hpp"
 
 #pragma warning(default : 4061) // enumerator 'identifier' in switch of enum 'enumeration' is not explicitly handled by a case label
@@ -185,7 +186,7 @@ void world_edit::ui_show_world_selection_match_transform() noexcept
                                   hovered.get<world::measurement_id>());
 
             if (measurement) {
-               new_position = (measurement->start + measurement->end) * 0.5f;
+               new_position = world::get_measurement_metrics(*measurement).centre;
                hovered_has_rotation = false;
             }
          }
@@ -422,15 +423,18 @@ void world_edit::ui_show_world_selection_match_transform() noexcept
 
                if (measurement) {
                   if (match_position) {
-                     const float3 old_centre =
-                        (measurement->start + measurement->end) * 0.5f;
+                     std::vector<float3> new_points = measurement->points;
+
+                     const float3 measurement_centre =
+                        world::get_measurement_metrics(*measurement).centre;
+
+                     for (float3& point : new_points) {
+                        point = point - measurement_centre + new_position;
+                     }
 
                      bundled_edits.push_back(
-                        edits::make_set_multi_value(&measurement->start,
-                                                    measurement->start - old_centre + new_position,
-                                                    &measurement->end,
-                                                    measurement->end - old_centre +
-                                                       new_position));
+                        edits::make_set_value(&measurement->points,
+                                              std::move(new_points)));
                   }
                }
             }
