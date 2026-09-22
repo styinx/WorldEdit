@@ -1,6 +1,10 @@
+0.171
+
+
+
 0.170
 
-- Added the ability to have multiple points in a measurement. Use "Shift + L Mouse" (This can be changed in the hotkeys editor) when placing to add a new point instead of finishing the current measurement. This also updates the save format for measurements, old format ones will continue to load only the new format will be saved out; this is noticable for people using version control. (Which if you're not doing, you should be.) 
+- Added the ability to have multiple points in a measurement. Use "Shift + L Mouse" (This can be changed in the hotkeys editor) when placing to add a new point instead of finishing the current measurement. This also updates the save format for measurements, old format ones will continue to load only the new format will be saved out; this is noticeable for people using version control. (Which if you're not doing, you should be.) 
 
 - Fixed a bug where hiding the most recently placed would cause future entities of that type to be created as hidden.
 
