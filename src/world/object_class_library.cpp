@@ -7,6 +7,7 @@
 #include "object_classes/grass_patch_class.hpp"
 #include "object_classes/leaf_patch_class.hpp"
 #include "object_classes/light_class.hpp"
+#include "object_classes/sound_ambience_class.hpp"
 
 #include "assets/asset_libraries.hpp"
 #include "assets/msh/default_missing_scene.hpp"
@@ -113,6 +114,9 @@ struct object_class_library::impl {
       _light_class_pool.clear();
       _light_class_index.clear();
 
+      _sound_ambience_class_pool.clear();
+      _sound_ambience_class_index.clear();
+
       _attached_objects_pool.clear();
       _attached_objects_index.clear();
 
@@ -175,6 +179,26 @@ struct object_class_library::impl {
          *assets::odf::default_object_class_definition()};
 
       return default_light_class;
+   }
+
+   auto get_sound_ambience_class(const object_class_handle packed_handle) const noexcept
+      -> const sound_ambience_class&
+   {
+      const handle_unpacked handle = unpack_handle(packed_handle);
+
+      [[likely]] if (handle.index < _class_pool.size() and
+                     handle.index < _sound_ambience_class_pool.size()) {
+         const entry& entry = _class_pool[handle.index];
+
+         [[likely]] if (entry.handle == handle) {
+            return *_sound_ambience_class_pool[handle.index];
+         }
+      }
+
+      const static sound_ambience_class default_sound_ambience_class{
+         *assets::odf::default_object_class_definition()};
+
+      return default_sound_ambience_class;
    }
 
    auto get_attached_objects(const object_class_handle packed_handle) const noexcept
@@ -278,6 +302,11 @@ struct object_class_library::impl {
                   std::erase(_light_class_index, handle.index);
                }
 
+               if (handle.index < _sound_ambience_class_pool.size()) {
+                  _sound_ambience_class_pool[handle.index] = nullptr;
+                  std::erase(_sound_ambience_class_index, handle.index);
+               }
+
                if (handle.index < _attached_objects_pool.size()) {
                   for (const object_attached& object :
                        _attached_objects_pool[handle.index]) {
@@ -361,6 +390,11 @@ private:
       if (class_index < _light_class_pool.size()) {
          _light_class_pool[class_index] = nullptr;
          std::erase(_light_class_index, class_index);
+      }
+
+      if (class_index < _sound_ambience_class_pool.size()) {
+         _sound_ambience_class_pool[class_index] = nullptr;
+         std::erase(_sound_ambience_class_index, class_index);
       }
 
       if (class_index < _attached_objects_pool.size()) {
@@ -452,6 +486,21 @@ private:
             std::make_unique<light_class>(*cls.definition);
          _light_class_index.push_back(class_index);
       }
+      else if (string::iequals(cls.definition->header.class_label,
+                               "SoundAmbienceStatic") or
+               string::iequals(cls.definition->header.class_label,
+                               "SoundAmbienceStreaming")) {
+         cls.flags.is_complex = true;
+         cls.flags.complex_type = object_class_type::sound_ambience;
+
+         if (_sound_ambience_class_pool.size() <= class_index) {
+            _sound_ambience_class_pool.resize(class_index + 1);
+         }
+
+         _sound_ambience_class_pool[class_index] =
+            std::make_unique<sound_ambience_class>(*cls.definition);
+         _sound_ambience_class_index.push_back(class_index);
+      }
       else {
          std::vector<object_attached> attached_objects;
          std::string_view last_attach_odf;
@@ -537,6 +586,10 @@ private:
       pinned_vector_init{.max_size = max_object_classes, .initial_capacity = 1024};
    std::vector<uint32> _light_class_index;
 
+   pinned_vector<std::unique_ptr<sound_ambience_class>> _sound_ambience_class_pool =
+      pinned_vector_init{.max_size = max_object_classes, .initial_capacity = 1024};
+   std::vector<uint32> _sound_ambience_class_index;
+
    pinned_vector<std::vector<object_attached>> _attached_objects_pool =
       pinned_vector_init{.max_size = max_object_classes, .initial_capacity = 1024};
    std::vector<uint32> _attached_objects_index;
@@ -605,6 +658,12 @@ auto object_class_library::get_light_class(const object_class_handle handle) con
    -> const light_class&
 {
    return _impl->get_light_class(handle);
+}
+
+auto object_class_library::get_sound_ambience_class(const object_class_handle handle) const noexcept
+   -> const sound_ambience_class&
+{
+   return _impl->get_sound_ambience_class(handle);
 }
 
 auto object_class_library::get_attached_objects(const object_class_handle handle) const noexcept

@@ -145,6 +145,11 @@ auto ground_object(const object& object, const world& world,
                             world, object_classes, blocks_bvh_library,
                             active_layers, object.id);
       } break;
+      case object_class_type::sound_ambience: {
+         return ground_bbox(object.position, {object.position, object.position},
+                            world, object_classes, blocks_bvh_library,
+                            active_layers, object.id);
+      } break;
       }
 
       std::unreachable();

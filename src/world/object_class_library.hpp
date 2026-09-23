@@ -19,6 +19,7 @@ struct object_attached;
 
 struct billboard_patch_class;
 struct light_class;
+struct sound_ambience_class;
 
 struct object_class_library {
    explicit object_class_library(assets::libraries_manager& asset_libraries) noexcept;
@@ -53,6 +54,12 @@ struct object_class_library {
    auto get_light_class(const object_class_handle handle) const noexcept
       -> const light_class&;
 
+   /// @brief Gets the sound_ambience_class for a handle, if it is associated with one.
+   /// @param handle The handle.
+   /// @return A reference to the sound_ambience_class or a reference to the default sound_ambience_class.
+   auto get_sound_ambience_class(const object_class_handle handle) const noexcept
+      -> const sound_ambience_class&;
+
    /// @brief Gets the attached objects for a handle for a handle, if it is associated with any.
    /// @param handle The handle.
    /// @return A span to the attached objects or an empty span.
@@ -80,7 +87,7 @@ struct object_class_library {
 private:
    struct impl;
 
-   implementation_storage<impl, 424> _impl;
+   implementation_storage<impl, 488> _impl;
 };
 
 }

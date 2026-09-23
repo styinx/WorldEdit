@@ -368,6 +368,18 @@ void show_imgui_editor(settings& settings, bool& open,
             ImGui::ColorEdit3("Animation Spline Color",
                               &graphics.animation_spline_color.x);
 
+            ImGui::SliderFloat("Object Sound Min Distance Alpha",
+                               &graphics.object_sound_distance_min_alpha, 1.0f / 255.0f,
+                               1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+
+            ImGui::SliderFloat("Object Sound Max Distance Alpha",
+                               &graphics.object_sound_distance_max_alpha, 1.0f / 255.0f,
+                               1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+
+            ImGui::SetItemTooltip(
+               "Transparency for point and spot light bounds when Show "
+               "Light Bounds is active.");
+
             ImGui::SeparatorText("Visualizer Sizes");
 
             ImGui::DragFloat("Barrier Height", &graphics.barrier_height, 0.5f, 0.0f,
@@ -463,6 +475,13 @@ void show_imgui_editor(settings& settings, bool& open,
             ImGui::SetItemTooltip(
                "Show visualizers for Sound Stream and Sound Static Min "
                "Distance Divisor property.");
+
+            ImGui::Checkbox("Always Show Object Sound Distances",
+                            &graphics.show_object_sound_distances);
+
+            ImGui::SetItemTooltip(
+               "Always show visualizers for sound objects with MinDistance and "
+               "MaxDistance properties.");
 
             ImGui::Checkbox("Show Light Bounds", &graphics.show_light_bounds);
 

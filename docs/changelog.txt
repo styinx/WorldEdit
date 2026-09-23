@@ -1,6 +1,6 @@
 0.171
 
-
+- Added support for previewing the "MinDistance"/"MaxDistance" properties of "SoundAmbienceStatic" (com_snd_amb_static) and "SoundAmbienceStreaming" (com_snd_amb_streaming) objects. There are a few new settings for adjusting this: "Object Sound Min Distance Alpha", "Object Sound Max Distance Alpha" and "Always Show Object Sound Distances".
 
 0.170
 

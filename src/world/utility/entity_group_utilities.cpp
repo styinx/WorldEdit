@@ -336,6 +336,13 @@ auto entity_group_metrics(const entity_group& group,
             } break;
             }
          } break;
+         case object_class_type::sound_ambience: {
+            const math::bounding_box bboxOS = object_class.model->bounding_box;
+            const math::bounding_box bboxGS = object.rotation * bboxOS + object.position;
+
+            ground_distance = std::min(ground_distance, bboxOS.min.y);
+            group_bbox = math::combine(group_bbox, bboxGS);
+         } break;
          }
       }
       else {

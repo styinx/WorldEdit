@@ -154,6 +154,9 @@ auto sector_fill(const sector& sector, const std::span<const object> world_objec
             } break;
             }
          } break;
+         case object_class_type::sound_ambience: {
+            bbox = {object.position, object.position};
+         } break;
          }
       }
       else {
@@ -234,6 +237,9 @@ bool inside_sector(const sector& sector, const object& object,
                     .max = max(cone_baseWS + e, object.position)};
          } break;
          }
+      } break;
+      case object_class_type::sound_ambience: {
+         bbox = {object.position, object.position};
       } break;
       }
    }

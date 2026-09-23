@@ -97,6 +97,10 @@ struct graphics {
 
    float4 snapping_face_color = {1.0f, 0.25f, 1.0f, 0.5f};
 
+   float object_sound_distance_min_alpha = 0.25f;
+
+   float object_sound_distance_max_alpha = 0.125f;
+
    float terrain_grid_line_width = 0.025f;
 
    float barrier_height = 32.0f;
@@ -130,6 +134,8 @@ struct graphics {
    bool show_hint_node_radii = false;
 
    bool show_region_distance_divisors = true;
+
+   bool show_object_sound_distances = false;
 
    bool highlight_sector_objects = false;
 

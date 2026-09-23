@@ -35,6 +35,7 @@ auto raycast(const float3 ray_origin, const float3 ray_direction,
       if (filter and not filter(object)) continue;
 
       const object_class& object_class = object_classes[object.class_handle];
+
       if (object_class.flags.is_complex) [[unlikely]] {
          switch (object_class.flags.complex_type) {
          case object_class_type::billboard_patch: {
@@ -59,6 +60,8 @@ auto raycast(const float3 ray_origin, const float3 ray_direction,
                   billboard_patch.world_from_object(object.rotation, object.position) *
                   (ray_originOS + ray_directionOS * hit_distance));
             }
+
+            continue;
          } break;
          case object_class_type::light: {
             const light_class& light =
@@ -74,38 +77,41 @@ auto raycast(const float3 ray_origin, const float3 ray_direction,
                min_distance = intersection;
                surface_normalWS = normalize(ray_origin + ray_direction * intersection);
             }
+
+            continue;
+         } break;
+         case object_class_type::sound_ambience: {
          } break;
          }
       }
-      else {
-         quaternion inverse_rotation = conjugate(object.rotation);
-         float3 inverse_position = inverse_rotation * -object.position;
 
-         float3 obj_ray_origin = inverse_rotation * ray_origin + inverse_position;
-         float3 obj_ray_direction = normalize(inverse_rotation * ray_direction);
+      quaternion inverse_rotation = conjugate(object.rotation);
+      float3 inverse_position = inverse_rotation * -object.position;
 
-         const msh::flat_model& model = *object_class.model;
+      float3 obj_ray_origin = inverse_rotation * ray_origin + inverse_position;
+      float3 obj_ray_direction = normalize(inverse_rotation * ray_direction);
 
-         float3 box_centre = (model.bounding_box.min + model.bounding_box.max) * 0.5f;
-         float3 box_size = (model.bounding_box.max - model.bounding_box.min) * 0.5f;
+      const msh::flat_model& model = *object_class.model;
 
-         const float box_intersection =
-            boxIntersection(obj_ray_origin - box_centre, obj_ray_direction, box_size);
+      float3 box_centre = (model.bounding_box.min + model.bounding_box.max) * 0.5f;
+      float3 box_size = (model.bounding_box.max - model.bounding_box.min) * 0.5f;
 
-         if (box_intersection < 0.0f) continue;
+      const float box_intersection =
+         boxIntersection(obj_ray_origin - box_centre, obj_ray_direction, box_size);
 
-         std::optional<msh::ray_hit> model_hit =
-            model.bvh.query(obj_ray_origin, obj_ray_direction);
+      if (box_intersection < 0.0f) continue;
 
-         if (not model_hit) continue;
+      std::optional<msh::ray_hit> model_hit =
+         model.bvh.query(obj_ray_origin, obj_ray_direction);
 
-         if (model_hit->distance < min_distance) {
-            hit = object.id;
-            hit_index = static_cast<uint32>(object_index);
-            min_distance = model_hit->distance;
-            surface_normalWS =
-               normalize(object.rotation * model_hit->unnormalized_normal);
-         }
+      if (not model_hit) continue;
+
+      if (model_hit->distance < min_distance) {
+         hit = object.id;
+         hit_index = static_cast<uint32>(object_index);
+         min_distance = model_hit->distance;
+         surface_normalWS =
+            normalize(object.rotation * model_hit->unnormalized_normal);
       }
    }
 

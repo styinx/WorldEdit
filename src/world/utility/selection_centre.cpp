@@ -186,6 +186,10 @@ auto selection_centre_for_env_map(const world& world,
                   selection_centre += object->position;
                   selection_axis_count += {1.0f, 1.0f, 1.0f};
                } break;
+               case object_class_type::sound_ambience: {
+                  selection_centre += object->position;
+                  selection_axis_count += 1.0f;
+               } break;
                }
             }
             else {

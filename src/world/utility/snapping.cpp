@@ -107,6 +107,8 @@ auto get_snapped_position(const snapping_entity& snapping,
          case object_class_type::light: {
             continue; // While there may be some value to snapping to a billboard patch I struggle to see any for lights.
          } break;
+         case object_class_type::sound_ambience: {
+         } break;
          }
       }
 
@@ -292,6 +294,14 @@ auto get_snapped_position(const object& snapping_object, const float3 snapping_p
                                      object_classes, visualizers, colors);
 
       } break;
+      case object_class_type::sound_ambience: {
+         return get_snapped_position(snapping_entity{.rotation = snapping_object.rotation,
+                                                     .positionWS = snapping_positionWS,
+                                                     .bboxOS =
+                                                        object_class.model->bounding_box},
+                                     world_objects, snap_radius, flags, active_layers,
+                                     object_classes, visualizers, colors);
+      } break;
       }
 
       std::unreachable();
@@ -350,6 +360,8 @@ auto get_snapped_position_filtered(
          } break;
          case object_class_type::light: {
             continue; // See comment in get_snapped_position
+         } break;
+         case object_class_type::sound_ambience: {
          } break;
          }
       }

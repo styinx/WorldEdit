@@ -352,6 +352,7 @@
     <ClCompile Include="src\world\object_classes\light_class.cpp" />
     <ClCompile Include="src\edits\add_measurement_point.cpp" />
     <ClCompile Include="src\world\utility\measurement_utilities.cpp" />
+    <ClCompile Include="src\world\object_classes\sound_ambience_class.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\assets\config\io.hpp" />
@@ -763,6 +764,7 @@
     <ClInclude Include="src\world\utility\measurement_utilities.hpp" />
     <ClInclude Include="src\edits\add_vector_entry.hpp" />
     <ClInclude Include="src\edits\add_measurement_point.hpp" />
+    <ClInclude Include="src\world\object_classes\sound_ambience_class.hpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="shaders\WorldEdit.shaders" />

@@ -51,6 +51,15 @@ bool intersects(const frustum& frustumWS, const object& object,
          }
 
       } break;
+      case object_class_type::sound_ambience: {
+         const quaternion inverse_rotation = conjugate(object.rotation);
+         const float3 inverse_position = inverse_rotation * -object.position;
+
+         const frustum frustumOS =
+            transform(frustumWS, inverse_rotation, inverse_position);
+
+         return object_classes[object.class_handle].model->bvh.intersects(frustumOS);
+      } break;
       }
 
       std::unreachable();

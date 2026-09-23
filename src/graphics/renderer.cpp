@@ -46,6 +46,7 @@
 #include "world/object_class_library.hpp"
 #include "world/object_classes/billboard_patch_class.hpp"
 #include "world/object_classes/light_class.hpp"
+#include "world/object_classes/sound_ambience_class.hpp"
 #include "world/utility/evaluate_treeline.hpp"
 #include "world/utility/measurement_utilities.hpp"
 #include "world/utility/region_properties.hpp"
@@ -65,6 +66,12 @@ struct update_frame_constant_buffer_flags {
 
 struct build_world_mesh_list_flags {
    bool tree_lines = true;
+};
+
+struct object_sound_sphere {
+   float3 position;
+   float radius;
+   bool is_min = false;
 };
 
 }
@@ -336,6 +343,7 @@ private:
    std::vector<terrain_cut> _terrain_cut_list;
 
    std::vector<meta_draw_icon> _world_object_light_icons;
+   std::vector<object_sound_sphere> _world_object_sound_spheres;
    meta_draw_batcher _meta_draw_batcher;
    ai_overlay_batches _ai_overlay_batches;
 
@@ -2807,6 +2815,18 @@ void renderer_impl::draw_world_meta_objects(
       }
    }
 
+   if (settings.show_object_sound_distances) {
+      for (const object_sound_sphere& sphere : _world_object_sound_spheres) {
+         if (intersects(view_frustum, sphere.position, sphere.radius)) {
+            _meta_draw_batcher.add_sphere_outline_solid(
+               sphere.position, sphere.radius,
+               {1.0f, 1.0f, 1.0f,
+                sphere.is_min ? settings.object_sound_distance_min_alpha
+                              : settings.object_sound_distance_max_alpha});
+         }
+      }
+   }
+
    for (const auto& line : tool_visualizers.lines_overlay()) {
       _meta_draw_batcher.add_line_overlay(line.v0, line.v0_color, line.v1, line.v1_color);
    }
@@ -2972,6 +2992,10 @@ void renderer_impl::draw_sector_objects(
                _meta_draw_batcher.add_light_icon(object.position,
                                                  light_class.world_icon_size(),
                                                  settings.sector_object_hightlight_color);
+            } break;
+            case world::object_class_type::sound_ambience: {
+               draw_model(_model_manager[object_class.model_name],
+                          object.rotation, object.position);
             } break;
             }
          }
@@ -3327,6 +3351,8 @@ void renderer_impl::draw_interaction_targets(
                                                         world_from_object) *
                                                         scale,
                                                      {color, 1.0f});
+
+            return;
          } break;
          case world::object_class_type::light: {
             const world::light_class& light_class =
@@ -3361,70 +3387,91 @@ void renderer_impl::draw_interaction_targets(
             } break;
             }
 
+            return;
+         } break;
+         case world::object_class_type::sound_ambience: {
+            const world::sound_ambience_class& sound_ambience =
+               world_classes.get_sound_ambience_class(class_handle);
+            const float3 position = {world_from_object[3].x,
+                                     world_from_object[3].y,
+                                     world_from_object[3].z};
+
+            if (const float distance = sound_ambience.get_min_distance();
+                distance > 0.0f) {
+               if (intersects(view_frustum, position, distance)) {
+                  _meta_draw_batcher.add_sphere_outline_solid(position, distance,
+                                                              {color, settings.object_sound_distance_min_alpha});
+               }
+            }
+
+            if (const float distance = sound_ambience.get_max_distance();
+                distance > 0.0f) {
+               if (intersects(view_frustum, position, distance)) {
+                  _meta_draw_batcher.add_sphere_outline_solid(position, distance,
+                                                              {color, settings.object_sound_distance_max_alpha});
+               }
+            }
          } break;
          }
       }
-      else {
-         model& model = _model_manager[object_class.model_name];
 
-         if (not intersects(view_frustum, world_from_object * model.bbox)) {
-            return;
+      model& model = _model_manager[object_class.model_name];
+
+      if (not intersects(view_frustum, world_from_object * model.bbox)) {
+         return;
+      }
+
+      gpu_virtual_address wireframe_constants = [&] {
+         auto allocation =
+            _dynamic_buffer_allocator.allocate(sizeof(wireframe_constant_buffer));
+
+         wireframe_constant_buffer constants{.color = color};
+
+         std::memcpy(allocation.cpu_address, &constants,
+                     sizeof(wireframe_constant_buffer));
+
+         return allocation.gpu_address;
+      }();
+
+      gpu_virtual_address object_constants = [&] {
+         auto allocation =
+            _dynamic_buffer_allocator.allocate(sizeof(world_mesh_constants));
+
+         world_mesh_constants constants = {.world_from_object = world_from_object};
+
+         std::memcpy(allocation.cpu_address, &constants, sizeof(world_mesh_constants));
+
+         return allocation.gpu_address;
+      }();
+
+      command_list.set_graphics_root_signature(_root_signatures.mesh_wireframe.get());
+      command_list.set_graphics_cbv(rs::mesh_wireframe::object_cbv, object_constants);
+      command_list.set_graphics_cbv(rs::mesh_wireframe::wireframe_cbv,
+                                    wireframe_constants);
+      command_list.set_graphics_cbv(rs::mesh_wireframe::frame_cbv,
+                                    _camera_constant_buffer_view);
+
+      command_list.set_pipeline_state(_pipelines.mesh_wireframe.get());
+
+      command_list.ia_set_primitive_topology(gpu::primitive_topology::trianglelist);
+
+      command_list.ia_set_index_buffer(model.gpu_buffer.index_buffer_view);
+      command_list.ia_set_vertex_buffers(0, model.gpu_buffer.position_vertex_buffer_view);
+
+      bool doublesided = false;
+
+      for (auto& part : model.parts) {
+         if (std::exchange(doublesided,
+                           are_flags_set(part.material.flags,
+                                         material_pipeline_flags::doublesided)) !=
+             doublesided) {
+            command_list.set_pipeline_state(
+               doublesided ? _pipelines.mesh_wireframe_doublesided.get()
+                           : _pipelines.mesh_wireframe.get());
          }
 
-         gpu_virtual_address wireframe_constants = [&] {
-            auto allocation =
-               _dynamic_buffer_allocator.allocate(sizeof(wireframe_constant_buffer));
-
-            wireframe_constant_buffer constants{.color = color};
-
-            std::memcpy(allocation.cpu_address, &constants,
-                        sizeof(wireframe_constant_buffer));
-
-            return allocation.gpu_address;
-         }();
-
-         gpu_virtual_address object_constants = [&] {
-            auto allocation =
-               _dynamic_buffer_allocator.allocate(sizeof(world_mesh_constants));
-
-            world_mesh_constants constants = {.world_from_object = world_from_object};
-
-            std::memcpy(allocation.cpu_address, &constants,
-                        sizeof(world_mesh_constants));
-
-            return allocation.gpu_address;
-         }();
-
-         command_list.set_graphics_root_signature(
-            _root_signatures.mesh_wireframe.get());
-         command_list.set_graphics_cbv(rs::mesh_wireframe::object_cbv, object_constants);
-         command_list.set_graphics_cbv(rs::mesh_wireframe::wireframe_cbv,
-                                       wireframe_constants);
-         command_list.set_graphics_cbv(rs::mesh_wireframe::frame_cbv,
-                                       _camera_constant_buffer_view);
-
-         command_list.set_pipeline_state(_pipelines.mesh_wireframe.get());
-
-         command_list.ia_set_primitive_topology(gpu::primitive_topology::trianglelist);
-
-         command_list.ia_set_index_buffer(model.gpu_buffer.index_buffer_view);
-         command_list.ia_set_vertex_buffers(0, model.gpu_buffer.position_vertex_buffer_view);
-
-         bool doublesided = false;
-
-         for (auto& part : model.parts) {
-            if (std::exchange(doublesided,
-                              are_flags_set(part.material.flags,
-                                            material_pipeline_flags::doublesided)) !=
-                doublesided) {
-               command_list.set_pipeline_state(
-                  doublesided ? _pipelines.mesh_wireframe_doublesided.get()
-                              : _pipelines.mesh_wireframe.get());
-            }
-
-            command_list.draw_indexed_instanced(part.index_count, 1, part.start_index,
-                                                part.start_vertex, 0);
-         }
+         command_list.draw_indexed_instanced(part.index_count, 1, part.start_index,
+                                             part.start_vertex, 0);
       }
    };
 
@@ -3450,6 +3497,8 @@ void renderer_impl::draw_interaction_targets(
                billboard_patch.world_from_object(object.rotation, object.position) * scale;
 
             _meta_draw_batcher.add_box_outline_solid(world_from_object, {color, 1.0f});
+
+            return;
          } break;
          case world::object_class_type::light: {
             const world::light_class& light_class =
@@ -3457,82 +3506,102 @@ void renderer_impl::draw_interaction_targets(
 
             _meta_draw_batcher.add_light_icon(object.position,
                                               light_class.world_icon_size(), color);
+
+            return;
+         } break;
+         case world::object_class_type::sound_ambience: {
+            const world::sound_ambience_class& sound_ambience =
+               world_classes.get_sound_ambience_class(object.class_handle);
+
+            if (const float distance = sound_ambience.get_min_distance(object);
+                distance > 0.0f) {
+               if (intersects(view_frustum, object.position, distance)) {
+                  _meta_draw_batcher.add_sphere_outline_solid(
+                     object.position, distance,
+                     {color, settings.object_sound_distance_min_alpha});
+               }
+            }
+
+            if (const float distance = sound_ambience.get_max_distance(object);
+                distance > 0.0f) {
+               if (intersects(view_frustum, object.position, distance)) {
+                  _meta_draw_batcher.add_sphere_outline_solid(
+                     object.position, distance,
+                     {color, settings.object_sound_distance_max_alpha});
+               }
+            }
          } break;
          }
       }
-      else {
-         float4x4 world_from_object = to_matrix(object.rotation);
-         world_from_object[3] = float4{object.position, 1.0f};
 
-         if (object_class.flags.has_attached_objects) [[unlikely]] {
-            for (const world::object_attached& attachment :
-                 world_classes.get_attached_objects(object.class_handle)) {
-               draw_attached_object(world_from_object * attachment.object_from_local,
-                                    attachment.class_handle, color);
-            }
+      float4x4 world_from_object = to_matrix(object.rotation);
+      world_from_object[3] = float4{object.position, 1.0f};
+
+      if (object_class.flags.has_attached_objects) [[unlikely]] {
+         for (const world::object_attached& attachment :
+              world_classes.get_attached_objects(object.class_handle)) {
+            draw_attached_object(world_from_object * attachment.object_from_local,
+                                 attachment.class_handle, color);
+         }
+      }
+
+      model& model = _model_manager[object_class.model_name];
+
+      if (not intersects(view_frustum, object.rotation * model.bbox + object.position)) {
+         return;
+      }
+
+      gpu_virtual_address wireframe_constants = [&] {
+         auto allocation =
+            _dynamic_buffer_allocator.allocate(sizeof(wireframe_constant_buffer));
+
+         wireframe_constant_buffer constants{.color = color};
+
+         std::memcpy(allocation.cpu_address, &constants,
+                     sizeof(wireframe_constant_buffer));
+
+         return allocation.gpu_address;
+      }();
+
+      gpu_virtual_address object_constants = [&] {
+         auto allocation =
+            _dynamic_buffer_allocator.allocate(sizeof(world_mesh_constants));
+
+         world_mesh_constants constants = {.world_from_object = world_from_object};
+
+         std::memcpy(allocation.cpu_address, &constants, sizeof(world_mesh_constants));
+
+         return allocation.gpu_address;
+      }();
+
+      command_list.set_graphics_root_signature(_root_signatures.mesh_wireframe.get());
+      command_list.set_graphics_cbv(rs::mesh_wireframe::object_cbv, object_constants);
+      command_list.set_graphics_cbv(rs::mesh_wireframe::wireframe_cbv,
+                                    wireframe_constants);
+      command_list.set_graphics_cbv(rs::mesh_wireframe::frame_cbv,
+                                    _camera_constant_buffer_view);
+
+      command_list.set_pipeline_state(_pipelines.mesh_wireframe.get());
+
+      command_list.ia_set_primitive_topology(gpu::primitive_topology::trianglelist);
+
+      command_list.ia_set_index_buffer(model.gpu_buffer.index_buffer_view);
+      command_list.ia_set_vertex_buffers(0, model.gpu_buffer.position_vertex_buffer_view);
+
+      bool doublesided = false;
+
+      for (auto& part : model.parts) {
+         if (std::exchange(doublesided,
+                           are_flags_set(part.material.flags,
+                                         material_pipeline_flags::doublesided)) !=
+             doublesided) {
+            command_list.set_pipeline_state(
+               doublesided ? _pipelines.mesh_wireframe_doublesided.get()
+                           : _pipelines.mesh_wireframe.get());
          }
 
-         model& model = _model_manager[object_class.model_name];
-
-         if (not intersects(view_frustum,
-                            object.rotation * model.bbox + object.position)) {
-            return;
-         }
-
-         gpu_virtual_address wireframe_constants = [&] {
-            auto allocation =
-               _dynamic_buffer_allocator.allocate(sizeof(wireframe_constant_buffer));
-
-            wireframe_constant_buffer constants{.color = color};
-
-            std::memcpy(allocation.cpu_address, &constants,
-                        sizeof(wireframe_constant_buffer));
-
-            return allocation.gpu_address;
-         }();
-
-         gpu_virtual_address object_constants = [&] {
-            auto allocation =
-               _dynamic_buffer_allocator.allocate(sizeof(world_mesh_constants));
-
-            world_mesh_constants constants = {.world_from_object = world_from_object};
-
-            std::memcpy(allocation.cpu_address, &constants,
-                        sizeof(world_mesh_constants));
-
-            return allocation.gpu_address;
-         }();
-
-         command_list.set_graphics_root_signature(
-            _root_signatures.mesh_wireframe.get());
-         command_list.set_graphics_cbv(rs::mesh_wireframe::object_cbv, object_constants);
-         command_list.set_graphics_cbv(rs::mesh_wireframe::wireframe_cbv,
-                                       wireframe_constants);
-         command_list.set_graphics_cbv(rs::mesh_wireframe::frame_cbv,
-                                       _camera_constant_buffer_view);
-
-         command_list.set_pipeline_state(_pipelines.mesh_wireframe.get());
-
-         command_list.ia_set_primitive_topology(gpu::primitive_topology::trianglelist);
-
-         command_list.ia_set_index_buffer(model.gpu_buffer.index_buffer_view);
-         command_list.ia_set_vertex_buffers(0, model.gpu_buffer.position_vertex_buffer_view);
-
-         bool doublesided = false;
-
-         for (auto& part : model.parts) {
-            if (std::exchange(doublesided,
-                              are_flags_set(part.material.flags,
-                                            material_pipeline_flags::doublesided)) !=
-                doublesided) {
-               command_list.set_pipeline_state(
-                  doublesided ? _pipelines.mesh_wireframe_doublesided.get()
-                              : _pipelines.mesh_wireframe.get());
-            }
-
-            command_list.draw_indexed_instanced(part.index_count, 1, part.start_index,
-                                                part.start_vertex, 0);
-         }
+         command_list.draw_indexed_instanced(part.index_count, 1, part.start_index,
+                                             part.start_vertex, 0);
       }
    };
 
@@ -4357,6 +4426,8 @@ void renderer_impl::draw_interaction_targets(
 
                   _meta_draw_batcher.add_box_outline_solid(patch_world_from_object * scale,
                                                            {color, 1.0f});
+
+                  return;
                } break;
                case world::object_class_type::light: {
                   const world::light_class& light_class =
@@ -4367,10 +4438,35 @@ void renderer_impl::draw_interaction_targets(
                                                            world_from_object[0].z},
                                                     light_class.world_icon_size(),
                                                     color);
+
+                  return;
+               } break;
+               case world::object_class_type::sound_ambience: {
+                  const world::sound_ambience_class& sound_ambience =
+                     world_classes.get_sound_ambience_class(class_handle);
+                  const float3 position = {world_from_object[3].x,
+                                           world_from_object[3].y,
+                                           world_from_object[3].z};
+
+                  if (const float distance = sound_ambience.get_min_distance();
+                      distance > 0.0f) {
+                     if (intersects(view_frustum, position, distance)) {
+                        _meta_draw_batcher.add_sphere_outline_solid(
+                           position, distance,
+                           {color, settings.object_sound_distance_min_alpha});
+                     }
+                  }
+
+                  if (const float distance = sound_ambience.get_max_distance();
+                      distance > 0.0f) {
+                     if (intersects(view_frustum, position, distance)) {
+                        _meta_draw_batcher.add_sphere_outline_solid(
+                           position, distance,
+                           {color, settings.object_sound_distance_max_alpha});
+                     }
+                  }
                } break;
                }
-
-               return;
             }
 
             if (object_class.flags.has_attached_objects) [[unlikely]] {
@@ -4718,6 +4814,7 @@ void renderer_impl::build_world_mesh_list(
    build_world_mesh_list_flags flags)
 {
    _world_object_light_icons.clear();
+   _world_object_sound_spheres.clear();
    _world_mesh_list.clear();
    _terrain_cut_list.clear();
    _terrain_cut_list.reserve(256);
@@ -4758,6 +4855,30 @@ void renderer_impl::build_world_mesh_list(
                world_classes.get_light_class(class_handle);
 
             _light_clusters.add_object_light(world_from_object, light_class);
+         } break;
+         case world::object_class_type::sound_ambience: {
+            const world::sound_ambience_class& sound_ambience =
+               world_classes.get_sound_ambience_class(class_handle);
+
+            if (const float distance = sound_ambience.get_min_distance();
+                distance > 0.0f) {
+               _world_object_sound_spheres.push_back({
+                  .position = {world_from_object[3].x, world_from_object[3].y,
+                               world_from_object[3].z},
+                  .radius = distance,
+                  .is_min = true,
+               });
+            }
+
+            if (const float distance = sound_ambience.get_max_distance();
+                distance > 0.0f) {
+               _world_object_sound_spheres.push_back({
+                  .position = {world_from_object[3].x, world_from_object[3].y,
+                               world_from_object[3].z},
+                  .radius = distance,
+                  .is_min = false,
+               });
+            }
          } break;
          }
 
@@ -4836,6 +4957,8 @@ void renderer_impl::build_world_mesh_list(
                   billboard_patch,
                   billboard_patch.world_from_object(object.rotation, object.position),
                   _dynamic_buffer_allocator);
+
+               continue;
             } break;
             case world::object_class_type::light: {
                const world::light_class& light_class =
@@ -4844,10 +4967,32 @@ void renderer_impl::build_world_mesh_list(
                _world_object_light_icons.push_back(
                   {object.position, light_class.world_icon_size(),
                    light_class.light_description().fixed_color});
+
+               continue;
+            } break;
+            case world::object_class_type::sound_ambience: {
+               const world::sound_ambience_class& sound_ambience =
+                  world_classes.get_sound_ambience_class(object.class_handle);
+
+               if (const float distance = sound_ambience.get_min_distance(object);
+                   distance > 0.0f) {
+                  _world_object_sound_spheres.push_back({
+                     .position = object.position,
+                     .radius = distance,
+                     .is_min = true,
+                  });
+               }
+
+               if (const float distance = sound_ambience.get_max_distance(object);
+                   distance > 0.0f) {
+                  _world_object_sound_spheres.push_back({
+                     .position = object.position,
+                     .radius = distance,
+                     .is_min = false,
+                  });
+               }
             } break;
             }
-
-            continue;
          }
 
          float4x4 world_from_object = to_matrix(object.rotation);
@@ -4938,6 +5083,8 @@ void renderer_impl::build_world_mesh_list(
                   billboard_patch,
                   billboard_patch.world_from_object(object_rotation, object_positionWS),
                   _dynamic_buffer_allocator);
+
+               continue;
             } break;
             case world::object_class_type::light: {
                const world::light_class& light_class =
@@ -4950,10 +5097,35 @@ void renderer_impl::build_world_mesh_list(
                _world_object_light_icons.push_back(
                   {object_positionWS, light_class.world_icon_size(),
                    light_class.light_description().fixed_color});
+
+               continue;
+            } break;
+            case world::object_class_type::sound_ambience: {
+               const world::sound_ambience_class& sound_ambience =
+                  world_classes.get_sound_ambience_class(object.class_handle);
+
+               const float3 object_positionWS =
+                  group.rotation * object.position + group.position;
+
+               if (const float distance = sound_ambience.get_min_distance(object);
+                   distance > 0.0f) {
+                  _world_object_sound_spheres.push_back({
+                     .position = object_positionWS,
+                     .radius = distance,
+                     .is_min = true,
+                  });
+               }
+
+               if (const float distance = sound_ambience.get_max_distance(object);
+                   distance > 0.0f) {
+                  _world_object_sound_spheres.push_back({
+                     .position = object_positionWS,
+                     .radius = distance,
+                     .is_min = false,
+                  });
+               }
             } break;
             }
-
-            continue;
          }
 
          auto& model = _model_manager[object_class.model_name];
@@ -5046,6 +5218,8 @@ void renderer_impl::build_world_mesh_list(
                                                    billboard_patch.world_from_object(
                                                       ghost.transform),
                                                    _dynamic_buffer_allocator);
+
+            continue;
          } break;
          case world::object_class_type::light: {
             const world::light_class& light_class =
@@ -5055,10 +5229,34 @@ void renderer_impl::build_world_mesh_list(
                {{ghost.transform[3].x, ghost.transform[3].y, ghost.transform[3].z},
                 light_class.world_icon_size(),
                 light_class.light_description().fixed_color});
+
+            continue;
+         } break;
+         case world::object_class_type::sound_ambience: {
+            const world::sound_ambience_class& sound_ambience =
+               world_classes.get_sound_ambience_class(object->class_handle);
+
+            if (const float distance = sound_ambience.get_min_distance(*object);
+                distance > 0.0f) {
+               _world_object_sound_spheres.push_back({
+                  .position = {ghost.transform[3].x, ghost.transform[3].y,
+                               ghost.transform[3].z},
+                  .radius = distance,
+                  .is_min = true,
+               });
+            }
+
+            if (const float distance = sound_ambience.get_max_distance(*object);
+                distance > 0.0f) {
+               _world_object_sound_spheres.push_back({
+                  .position = {ghost.transform[3].x, ghost.transform[3].y,
+                               ghost.transform[3].z},
+                  .radius = distance,
+                  .is_min = false,
+               });
+            }
          } break;
          }
-
-         continue;
       }
 
       auto& model = _model_manager[object_class.model_name];
@@ -5136,6 +5334,7 @@ void renderer_impl::build_world_mesh_list(
                                                                world_from_object),
                                                             _dynamic_buffer_allocator);
 
+                     return;
                   } break;
                   case world::object_class_type::light: {
                      const world::light_class& light_class =
@@ -5146,10 +5345,36 @@ void renderer_impl::build_world_mesh_list(
                           world_from_object[3].z},
                          light_class.world_icon_size(),
                          light_class.light_description().fixed_color});
+
+                     return;
+                  } break;
+                  case world::object_class_type::sound_ambience: {
+                     const world::sound_ambience_class& sound_ambience =
+                        world_classes.get_sound_ambience_class(class_handle);
+
+                     if (const float distance = sound_ambience.get_min_distance();
+                         distance > 0.0f) {
+                        _world_object_sound_spheres.push_back({
+                           .position = {world_from_object[3].x,
+                                        world_from_object[3].y,
+                                        world_from_object[3].z},
+                           .radius = distance,
+                           .is_min = true,
+                        });
+                     }
+
+                     if (const float distance = sound_ambience.get_max_distance();
+                         distance > 0.0f) {
+                        _world_object_sound_spheres.push_back({
+                           .position = {world_from_object[3].x,
+                                        world_from_object[3].y,
+                                        world_from_object[3].z},
+                           .radius = distance,
+                           .is_min = false,
+                        });
+                     }
                   } break;
                   }
-
-                  return;
                }
 
                auto& model = _model_manager[object_class.model_name];

@@ -6,6 +6,7 @@
 #include "../object_class.hpp"
 #include "../object_classes/billboard_patch_class.hpp"
 #include "../object_classes/light_class.hpp"
+#include "../object_classes/sound_ambience_class.hpp"
 #include "../utility/measurement_utilities.hpp"
 
 #include "math/matrix_funcs.hpp"
@@ -78,6 +79,17 @@ auto selection_bbox_for_camera(const world& world,
                      selection_bbox = math::combine(bbox, selection_bbox);
                   } break;
                   }
+               } break;
+               case object_class_type::sound_ambience: {
+                  const sound_ambience_class& sound_ambience =
+                     object_classes.get_sound_ambience_class(object->class_handle);
+
+                  const float max_distance = sound_ambience.get_max_distance(*object);
+
+                  const math::bounding_box bbox = {.min = object->position - max_distance,
+                                                   .max = object->position + max_distance};
+
+                  selection_bbox = math::combine(bbox, selection_bbox);
                } break;
                }
             }
@@ -404,6 +416,13 @@ auto selection_metrics_for_move(const world& world,
                      selection_bbox = math::combine(bbox, selection_bbox);
                   } break;
                   }
+               } break;
+               case object_class_type::sound_ambience: {
+                  math::bounding_box bbox = object_class.model->bounding_box;
+
+                  bbox = object->rotation * bbox + object->position;
+
+                  selection_bbox = math::combine(bbox, selection_bbox);
                } break;
                }
             }

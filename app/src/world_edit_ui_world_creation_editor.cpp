@@ -332,6 +332,8 @@ void world_edit::ui_show_world_creation_editor() noexcept
                   } break;
                   case world::object_class_type::light: {
                   } break;
+                  case world::object_class_type::sound_ambience: {
+                  } break;
                   }
                }
                else {
